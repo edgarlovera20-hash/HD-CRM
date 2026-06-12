@@ -6,6 +6,7 @@
   "scripts": {
     "lint": "echo TODO lint",
     "test": "echo TODO test",
+    "typecheck": "echo TODO typecheck",
     "build": "echo TODO build"
   },
   "engines": {
