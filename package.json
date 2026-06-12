@@ -12,13 +12,15 @@
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test": "echo TODO test",
-    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"server/**/*.ts\""
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"server/**/*.ts\"",
+    "postinstall": "prisma generate"
   },
   "engines": {
     "node": ">=20.0.0"
   },
   "dependencies": {
     "@hd/core-contracts": "file:../HD-CORE/packages/contracts",
+    "@prisma/client": "^5.22.0",
     "@hd/core-rbac": "file:../HD-CORE/packages/rbac",
     "@hd/core-types": "file:../HD-CORE/packages/types",
     "@hd/core-validation": "file:../HD-CORE/packages/validation",
@@ -37,6 +39,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.14",
+    "prisma": "^5.22.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/express": "^4.17.25",
     "@types/jsonwebtoken": "^9.0.9",
