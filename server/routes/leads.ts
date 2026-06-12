@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { emitEvent } from "../events/emitter.js";
 
 const router = Router();
 
@@ -26,6 +27,13 @@ router.post("/", async (req, res) => {
     };
     leads.push(lead);
     console.log(`[AUDIT STUB] POST /api/leads correlationId=${correlationId}`);
+    emitEvent(
+      "web.lead.submitted",
+      { leadId: lead.id, email: lead.email, source: "web" },
+      "HD-CRM",
+      { id: "system", type: "system" },
+      lead.correlationId
+    );
     return res.status(201).json({ ok: true, id: lead.id, correlationId });
   } catch {
     return res.status(400).json({ error: "Datos de lead inválidos" });

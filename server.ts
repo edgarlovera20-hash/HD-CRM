@@ -6,6 +6,7 @@ import { auditLog } from "./server/middleware/auditLog.js";
 import authRoutes from "./server/routes/auth.js";
 import agentRouter from "./server/routes/agent.js";
 import clientsRoutes from "./server/routes/clients.js";
+import eventsRouter from "./server/routes/events.js";
 import healthRoutes from "./server/routes/health.js";
 import leadsRouter from "./server/routes/leads.js";
 import webhooksRouter from "./server/routes/webhooks.js";
@@ -32,6 +33,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/agent", agentRouter);
 app.use("/api", healthRoutes);
 app.use("/api", clientsRoutes);
+app.use("/api/events", eventsRouter);
 app.use("/api/leads", leadsRouter);
 app.use("/api/webhooks/n8n", webhooksRouter);
 

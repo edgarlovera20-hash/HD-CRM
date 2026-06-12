@@ -1,8 +1,9 @@
 import { randomUUID } from "crypto";
 import { Router } from "express";
 import { z } from "zod";
-import { requireAuth } from "../middleware/requireAuth.js";
+import { requireAuth, type AuthRequest } from "../middleware/requireAuth.js";
 import type { Client, PaymentCommitment } from "../types.js";
+import { emitEvent } from "../events/emitter.js";
 
 const router = Router();
 
@@ -54,7 +55,7 @@ router.get("/commitments", requireAuth, (_req, res) => {
 });
 
 // POST /api/commitments — create a payment commitment
-router.post("/commitments", requireAuth, (req, res) => {
+router.post("/commitments", requireAuth, (req: AuthRequest, res) => {
   const parsed = commitmentSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Solicitud inválida", details: parsed.error.issues });
@@ -84,6 +85,14 @@ router.post("/commitments", requireAuth, (req, res) => {
     platform: "HD-CRM",
     at: commitment.createdAt,
   });
+
+  emitEvent(
+    "crm.payment_commitment.created",
+    { commitmentId: commitment.id, clientId: commitment.clientId, amount: commitment.amount },
+    "HD-CRM",
+    { id: req.user?.sub ?? "system", type: req.user ? "user" : "system" },
+    commitment.correlationId
+  );
 
   res.status(201).json({ commitment });
 });
