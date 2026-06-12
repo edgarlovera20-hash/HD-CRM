@@ -1,0 +1,6 @@
+{
+  "repository": "HD-CRM",
+  "ecosystem": "Heavenly Dreams",
+  "status": "bootstrap",
+  "requires": ["HD-CORE"]
+}
