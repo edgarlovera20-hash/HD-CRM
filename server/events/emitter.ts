@@ -6,13 +6,28 @@ export interface HdEventEnvelope<T = unknown> {
   version: string;
   correlationId: string;
   occurredAt: string;
-  producer: string;         // platform name e.g. "HD-CRM"
+  producer: string;
   actor: { id: string; type: "user" | "service_principal" | "system" };
   payload: T;
 }
 
 const MAX_EVENTS = 100;
 const eventLog: HdEventEnvelope[] = [];
+
+// HD-BRAIN subscribes to all HD-CRM events.
+const BRAIN_URL = process.env.BRAIN_EVENTS_URL ?? "";
+
+function forwardEvent(envelope: HdEventEnvelope): void {
+  const secret = process.env.EVENT_BUS_SECRET;
+  if (!secret || !BRAIN_URL) return;
+  fetch(BRAIN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-event-bus-secret": secret },
+    body: JSON.stringify(envelope),
+  }).catch((err: unknown) => {
+    console.warn(`[EVENT FORWARD] Failed ${envelope.eventName} → ${BRAIN_URL}:`, err);
+  });
+}
 
 export function emitEvent<T>(
   eventName: string,
@@ -36,6 +51,7 @@ export function emitEvent<T>(
   console.log(
     `[EVENT] ${eventName} producer=${producer} correlationId=${envelope.correlationId} actor=${actor.id}(${actor.type})`
   );
+  forwardEvent(envelope as HdEventEnvelope);
   return envelope;
 }
 
