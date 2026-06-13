@@ -1,0 +1,49 @@
+// prisma/schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ClientStatus {
+  new
+  active
+  overdue
+}
+
+model Client {
+  id          String              @id @default(cuid())
+  name        String
+  email       String?             @unique
+  phone       String?
+  status      ClientStatus        @default(new)
+  balance     Float               @default(0)
+  lastContact DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  commitments PaymentCommitment[]
+}
+
+model PaymentCommitment {
+  id            String   @id @default(cuid())
+  clientId      String
+  client        Client   @relation(fields: [clientId], references: [id])
+  amount        Float
+  dueDate       DateTime
+  correlationId String
+  createdAt     DateTime @default(now())
+}
+
+model Lead {
+  id            String   @id @default(cuid())
+  name          String
+  email         String
+  phone         String?
+  message       String?
+  source        String   @default("web")
+  correlationId String
+  createdAt     DateTime @default(now())
+}
