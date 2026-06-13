@@ -1,0 +1,15 @@
+export const typography = {
+  fontSans: '"Inter", system-ui, sans-serif',
+  fontHeading: '"Poppins", "Inter", system-ui, sans-serif',
+  sizeXs: "0.75rem",
+  sizeSm: "0.875rem",
+  sizeBase: "1rem",
+  sizeLg: "1.125rem",
+  sizeXl: "1.25rem",
+  size2xl: "1.5rem",
+  size3xl: "1.875rem",
+  weightNormal: "400",
+  weightMedium: "500",
+  weightSemibold: "600",
+  weightBold: "700",
+} as const;

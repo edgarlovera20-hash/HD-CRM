@@ -1,209 +1,308 @@
-import { AlertTriangle, DollarSign, LogOut, Phone, Users } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import {
+  DollarSign,
+  Users,
+  Target,
+  TrendingUp,
+  Building2,
+  Activity,
+  UserPlus,
+  CheckCircle,
+  Phone,
+  Calendar,
+  ArrowUpRight,
+} from "lucide-react";
+import { MetricCard } from "../components/ui/MetricCard";
+import { StatusBadge } from "../components/ui/StatusBadge";
 
-type ClientStatus = "active" | "new" | "overdue";
+interface Activity {
+  id: string;
+  type: "lead" | "deal" | "contact" | "meeting";
+  description: string;
+  time: string;
+  user: string;
+}
 
-interface Client {
+const recentActivities: Activity[] = [
+  { id: "1", type: "lead", description: "Nuevo lead: Corporativo Bajío SA", time: "Hace 5 min", user: "Carlos M." },
+  { id: "2", type: "deal", description: "Deal movido a Propuesta: Hotel Las Palmas", time: "Hace 22 min", user: "Ana R." },
+  { id: "3", type: "contact", description: "Contacto realizado: Juan García (TecNorte)", time: "Hace 45 min", user: "Luis H." },
+  { id: "4", type: "meeting", description: "Reunión agendada: Farmacéutica GDL — 15 Jun", time: "Hace 1h", user: "María L." },
+  { id: "5", type: "deal", description: "Deal cerrado ganado: Distribuidora CDMX $85,000", time: "Hace 2h", user: "Carlos M." },
+  { id: "6", type: "lead", description: "Nuevo lead: Automotriz Frontera", time: "Hace 3h", user: "Ana R." },
+  { id: "7", type: "contact", description: "Seguimiento: Constructora Monterrey", time: "Hace 4h", user: "Luis H." },
+  { id: "8", type: "meeting", description: "Reunión completada: Grupo Salinas — Propuesta", time: "Ayer 18:30", user: "María L." },
+];
+
+const activityIcons: Record<Activity["type"], React.ComponentType<{ className?: string }>> = {
+  lead: UserPlus,
+  deal: ArrowUpRight,
+  contact: Phone,
+  meeting: Calendar,
+};
+
+const activityColors: Record<Activity["type"], string> = {
+  lead: "#0066FF",
+  deal: "#10B981",
+  contact: "#F59E0B",
+  meeting: "#8B5CF6",
+};
+
+interface TopClient {
   id: string;
   name: string;
-  status: ClientStatus;
-  balance: number;
+  company: string;
+  revenue: number;
+  status: "active" | "inactive" | "prospect";
   lastContact: string;
-  phone: string;
 }
+
+const topClients: TopClient[] = [
+  { id: "1", name: "María López", company: "Constructora Monterrey", revenue: 89500, status: "active", lastContact: "Hoy" },
+  { id: "2", name: "Juan García", company: "TecNorte SA", revenue: 45200, status: "active", lastContact: "Ayer" },
+  { id: "3", name: "Ana Martínez", company: "Hotel Paraíso Cancún", revenue: 32000, status: "active", lastContact: "Jun 10" },
+  { id: "4", name: "Luis Hernández", company: "Farmacéutica GDL", revenue: 27500, status: "active", lastContact: "Jun 09" },
+  { id: "5", name: "Carlos Rodríguez", company: "Distribuidora CDMX", revenue: 85000, status: "active", lastContact: "Hoy" },
+];
+
+const pipelineStages = [
+  { name: "Prospecting", deals: 45, value: 820000, color: "#0066FF" },
+  { name: "Qualification", deals: 28, value: 510000, color: "#8B5CF6" },
+  { name: "Proposal", deals: 17, value: 320000, color: "#F59E0B" },
+  { name: "Negotiation", deals: 12, value: 195000, color: "#EF4444" },
+  { name: "Closing", deals: 8, value: 148000, color: "#10B981" },
+];
+
+const maxDeals = Math.max(...pipelineStages.map((s) => s.deals));
 
 const currency = new Intl.NumberFormat("es-MX", {
   style: "currency",
   currency: "MXN",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
 });
 
-const statusStyles: Record<ClientStatus, { label: string; className: string }> = {
-  active: { label: "Activo", className: "bg-[#10B981]/15 text-[#10B981]" },
-  new: { label: "Nuevo", className: "bg-[#00A3FF]/15 text-[#00A3FF]" },
-  overdue: { label: "Moroso", className: "bg-[#EF4444]/15 text-[#EF4444]" },
-};
-
-function StatusBadge({ status }: { status: ClientStatus }) {
-  const s = statusStyles[status];
-  return (
-    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${s.className}`}>
-      {s.label}
-    </span>
-  );
-}
-
 export default function DashboardPage() {
-  const { user, token, logout } = useAuth();
-  const navigate = useNavigate();
-  const [clients, setClients] = useState<Client[]>([]);
-  const [overdue, setOverdue] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  function handleLogout() {
-    logout();
-    navigate("/login", { replace: true });
-  }
-
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setError("");
-      try {
-        const headers = { Authorization: `Bearer ${token}` };
-        const [allRes, overdueRes] = await Promise.all([
-          fetch("/api/clients", { headers }),
-          fetch("/api/clients/overdue", { headers }),
-        ]);
-        if (allRes.status === 401 || overdueRes.status === 401) {
-          handleLogout();
-          return;
-        }
-        const allData = await allRes.json();
-        const overdueData = await overdueRes.json();
-        setClients(allData.clients ?? []);
-        setOverdue(overdueData.clients ?? []);
-      } catch {
-        setError("No se pudieron cargar los clientes.");
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
-
-  const totalClients = clients.length;
-  const activeCount = clients.filter((c) => c.status === "active").length;
-  const overdueCount = overdue.length;
-  const totalBalance = clients.reduce((sum, c) => sum + c.balance, 0);
-
-  const cards = [
-    { icon: Users, label: "Total de clientes", value: String(totalClients), tint: "#0066FF" },
-    { icon: Users, label: "Activos", value: String(activeCount), tint: "#10B981" },
-    { icon: AlertTriangle, label: "Cuentas morosas", value: String(overdueCount), tint: "#EF4444" },
-    { icon: DollarSign, label: "Saldo total", value: currency.format(totalBalance), tint: "#F59E0B" },
-  ];
-
   return (
-    <div className="min-h-screen bg-[#0A0F1C] text-[#F9FAFB]">
-      <header className="bg-[#111827] border-b border-[#1F2937] px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#0066FF] flex items-center justify-center">
-            <Users className="w-4 h-4 text-white" />
+    <div className="space-y-6">
+      {/* Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <MetricCard
+          title="MRR"
+          value="$284,500"
+          change="+12.3%"
+          changeType="up"
+          icon={DollarSign}
+          color="#0066FF"
+        />
+        <MetricCard
+          title="Leads Activos"
+          value="342"
+          change="+47"
+          changeType="up"
+          icon={UserPlus}
+          color="#8B5CF6"
+        />
+        <MetricCard
+          title="Tasa de Cierre"
+          value="23.4%"
+          change="+2.1%"
+          changeType="up"
+          icon={Target}
+          color="#10B981"
+        />
+        <MetricCard
+          title="Pipeline Value"
+          value="$1.8M"
+          change="+$230K"
+          changeType="up"
+          icon={TrendingUp}
+          color="#F59E0B"
+        />
+        <MetricCard
+          title="Clientes Activos"
+          value="187"
+          change="+8"
+          changeType="up"
+          icon={Users}
+          color="#00A3FF"
+        />
+        <MetricCard
+          title="CAC"
+          value="$1,240"
+          change="-$80"
+          changeType="down"
+          icon={Activity}
+          color="#10B981"
+          goodDown
+        />
+      </div>
+
+      {/* Middle row: Activities + Pipeline */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Activities */}
+        <div
+          className="rounded-[20px] overflow-hidden"
+          style={{
+            background: "#161F33",
+            border: "1px solid rgba(255,255,255,0.08)",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.25)",
+          }}
+        >
+          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <h3 className="font-semibold text-white text-sm" style={{ fontFamily: "Poppins, sans-serif" }}>
+              Actividad Reciente
+            </h3>
           </div>
-          <span className="font-bold text-white" style={{ fontFamily: "Poppins, sans-serif" }}>
-            HD CRM
-          </span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-[#9CA3AF] text-sm">{user?.email ?? "CRM"}</span>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-[#9CA3AF] hover:text-white transition-colors text-sm"
-          >
-            <LogOut className="w-4 h-4" />
-            Salir
-          </button>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-6 py-10">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "Poppins, sans-serif" }}>
-            Bienvenido, {user?.name ?? "CRM"}
-          </h1>
-          <p className="text-[#9CA3AF] mt-1 text-sm">Gestión de clientes, cobranza y compromisos de pago</p>
-        </div>
-
-        {error && (
-          <div className="mb-6 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
-            {error}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {cards.map((card) => (
-            <div key={card.label} className="bg-[#111827] border border-[#1F2937] rounded-xl p-5">
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
-                style={{ backgroundColor: `${card.tint}1A` }}
-              >
-                <card.icon className="w-5 h-5" style={{ color: card.tint }} />
-              </div>
-              <p className="text-[#9CA3AF] text-sm">{card.label}</p>
-              <p className="text-2xl font-bold text-[#F9FAFB] mt-1">{card.value}</p>
-            </div>
-          ))}
-        </div>
-
-        <section className="bg-[#111827] border border-[#1F2937] rounded-xl overflow-hidden mb-8">
-          <div className="px-6 py-4 border-b border-[#1F2937]">
-            <h2 className="font-semibold text-[#F9FAFB]">Clientes</h2>
-          </div>
-          {loading ? (
-            <p className="px-6 py-8 text-[#9CA3AF] text-sm">Cargando...</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-[#9CA3AF] border-b border-[#1F2937]">
-                    <th className="px-6 py-3 font-medium">Nombre</th>
-                    <th className="px-6 py-3 font-medium">Estado</th>
-                    <th className="px-6 py-3 font-medium">Saldo</th>
-                    <th className="px-6 py-3 font-medium">Último contacto</th>
-                    <th className="px-6 py-3 font-medium">Teléfono</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {clients.map((c) => (
-                    <tr key={c.id} className="border-b border-[#1F2937] last:border-0 hover:bg-[#161F33]">
-                      <td className="px-6 py-4 text-[#F9FAFB]">{c.name}</td>
-                      <td className="px-6 py-4">
-                        <StatusBadge status={c.status} />
-                      </td>
-                      <td className="px-6 py-4 text-[#E5E7EB]">{currency.format(c.balance)}</td>
-                      <td className="px-6 py-4 text-[#9CA3AF]">{c.lastContact}</td>
-                      <td className="px-6 py-4 text-[#9CA3AF]">
-                        <span className="flex items-center gap-1.5">
-                          <Phone className="w-3.5 h-3.5" />
-                          {c.phone}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        <section className="bg-[#111827] border border-[#1F2937] rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-[#1F2937] flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-[#EF4444]" />
-            <h2 className="font-semibold text-[#F9FAFB]">Cuentas morosas</h2>
-          </div>
-          {loading ? (
-            <p className="px-6 py-8 text-[#9CA3AF] text-sm">Cargando...</p>
-          ) : overdue.length === 0 ? (
-            <p className="px-6 py-8 text-[#9CA3AF] text-sm">No hay cuentas morosas.</p>
-          ) : (
-            <ul className="divide-y divide-[#1F2937]">
-              {overdue.map((c) => (
-                <li key={c.id} className="px-6 py-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-[#F9FAFB]">{c.name}</p>
-                    <p className="text-[#9CA3AF] text-xs mt-0.5">Último contacto: {c.lastContact}</p>
+          <div className="divide-y divide-white/[0.04]">
+            {recentActivities.map((act) => {
+              const Icon = activityIcons[act.type];
+              const color = activityColors[act.type];
+              return (
+                <div key={act.id} className="flex items-start gap-3 px-5 py-3.5 hover:bg-white/[0.02] transition-colors">
+                  <div
+                    className="w-7 h-7 rounded-[8px] flex items-center justify-center flex-shrink-0 mt-0.5"
+                    style={{ background: `${color}20` }}
+                  >
+                    <Icon className="w-3.5 h-3.5" style={{ color }} />
                   </div>
-                  <span className="text-[#EF4444] font-semibold">{currency.format(c.balance)}</span>
-                </li>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-[#D1D5DB] leading-snug">{act.description}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs text-[#4B5563]">{act.time}</span>
+                      <span className="text-xs text-[#4B5563]">·</span>
+                      <span className="text-xs text-[#6B7280]">{act.user}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Pipeline by Stage */}
+        <div
+          className="rounded-[20px] overflow-hidden"
+          style={{
+            background: "#161F33",
+            border: "1px solid rgba(255,255,255,0.08)",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.25)",
+          }}
+        >
+          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <h3 className="font-semibold text-white text-sm" style={{ fontFamily: "Poppins, sans-serif" }}>
+              Pipeline por Etapa
+            </h3>
+          </div>
+          <div className="px-5 py-4 space-y-4">
+            {pipelineStages.map((stage) => (
+              <div key={stage.name}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ background: stage.color }}
+                    />
+                    <span className="text-sm text-[#D1D5DB]">{stage.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-[#6B7280]">{stage.deals} deals</span>
+                    <span className="text-xs font-semibold text-white">{currency.format(stage.value)}</span>
+                  </div>
+                </div>
+                <div className="h-2 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
+                  <div
+                    className="h-2 rounded-full transition-all"
+                    style={{
+                      width: `${(stage.deals / maxDeals) * 100}%`,
+                      background: stage.color,
+                      opacity: 0.8,
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+
+            {/* Total */}
+            <div
+              className="pt-4 mt-2 flex items-center justify-between"
+              style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+            >
+              <span className="text-sm text-[#6B7280]">Total pipeline</span>
+              <span className="text-base font-bold text-white">
+                {currency.format(pipelineStages.reduce((s, st) => s + st.value, 0))}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Top Clients Table */}
+      <div
+        className="rounded-[20px] overflow-hidden"
+        style={{
+          background: "#161F33",
+          border: "1px solid rgba(255,255,255,0.08)",
+          boxShadow: "0 20px 50px rgba(0,0,0,0.25)",
+        }}
+      >
+        <div
+          className="px-5 py-4 flex items-center justify-between"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <h3 className="font-semibold text-white text-sm" style={{ fontFamily: "Poppins, sans-serif" }}>
+            Clientes Principales
+          </h3>
+          <div className="flex items-center gap-1.5">
+            <CheckCircle className="w-3.5 h-3.5 text-[#10B981]" />
+            <span className="text-xs text-[#6B7280]">Top 5 por revenue</span>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-[#4B5563]">Cliente</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-[#4B5563]">Empresa</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-[#4B5563]">Revenue</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-[#4B5563]">Estado</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-[#4B5563]">Último Contacto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topClients.map((client, idx) => (
+                <tr
+                  key={client.id}
+                  className="transition-colors hover:bg-white/[0.02]"
+                  style={{ borderBottom: idx < topClients.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}
+                >
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                        style={{ background: "linear-gradient(135deg, #0066FF, #00A3FF)" }}
+                      >
+                        {client.name.charAt(0)}
+                      </div>
+                      <span className="text-[#D1D5DB] font-medium">{client.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-[#4B5563]" />
+                      <span className="text-[#9CA3AF]">{client.company}</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 font-semibold text-white">{currency.format(client.revenue)}</td>
+                  <td className="px-5 py-4">
+                    <StatusBadge status={client.status} />
+                  </td>
+                  <td className="px-5 py-4 text-[#6B7280]">{client.lastContact}</td>
+                </tr>
               ))}
-            </ul>
-          )}
-        </section>
-      </main>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
