@@ -1,3 +1,4 @@
+import type { ComponentType, CSSProperties } from "react";
 import {
   DollarSign,
   Users,
@@ -33,7 +34,7 @@ const recentActivities: Activity[] = [
   { id: "8", type: "meeting", description: "Reunión completada: Grupo Salinas — Propuesta", time: "Ayer 18:30", user: "María L." },
 ];
 
-const activityIcons: Record<Activity["type"], React.ComponentType<{ className?: string }>> = {
+const activityIcons: Record<Activity["type"], ComponentType<{ className?: string; style?: CSSProperties }>> = {
   lead: UserPlus,
   deal: ArrowUpRight,
   contact: Phone,

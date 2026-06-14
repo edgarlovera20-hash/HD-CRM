@@ -1,3 +1,4 @@
+import type { ComponentType, CSSProperties } from "react";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 interface MetricCardProps {
@@ -5,7 +6,7 @@ interface MetricCardProps {
   value: string;
   change: string;
   changeType: "up" | "down" | "neutral";
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string; style?: CSSProperties }>;
   color?: string;
   goodDown?: boolean;
 }

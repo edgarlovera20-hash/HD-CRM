@@ -1,3 +1,4 @@
+import type { ComponentType, CSSProperties } from "react";
 import { BarChart3, PieChart, TrendingUp, Users, RefreshCw, Target, Download, Eye } from "lucide-react";
 import { PageHeader } from "../components/ui/PageHeader";
 
@@ -7,7 +8,7 @@ interface ReportCard {
   description: string;
   lastGenerated: string;
   category: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string; style?: CSSProperties }>;
   color: string;
   trend?: string;
   trendUp?: boolean;
