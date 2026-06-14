@@ -5,7 +5,7 @@ interface MetricCardProps {
   value: string;
   change: string;
   changeType: "up" | "down" | "neutral";
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   color?: string;
   goodDown?: boolean;
 }
