@@ -7,7 +7,7 @@ interface ReportCard {
   description: string;
   lastGenerated: string;
   category: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   color: string;
   trend?: string;
   trendUp?: boolean;
